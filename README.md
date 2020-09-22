@@ -11,3 +11,5 @@ Technologies used:
 C #> 8.0
 EF Core
 .Net Core 3.0
+
+* Set ConnectionString in appsettings.json for production and appsettings.Development.json for development before run this application.
