@@ -40,8 +40,9 @@ namespace JobTo.API
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
             }
-
+            
             //app.UseHttpsRedirection();
 
             app.UseRouting();
