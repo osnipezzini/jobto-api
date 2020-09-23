@@ -1,11 +1,16 @@
+using System;
+using System.Security.Claims;
+using System.Text;
 using JobTo.API.Data;
+using JobTo.Common;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
+using Microsoft.IdentityModel.Tokens;
 
 namespace JobTo.API
 {
@@ -23,14 +28,38 @@ namespace JobTo.API
         {
             services.AddDbContext<JobToContext>(
                 context => context.UseNpgsql(
-                    Configuration.GetConnectionString("Default"), 
+                    Configuration.GetConnectionString("Default"),
                     options => options.SetPostgresVersion(new Version(9, 6)))
             );
-
+            services.AddCors();
             services.AddControllers()
                 .AddNewtonsoftJson(
                         opt => opt.SerializerSettings.ReferenceLoopHandling =
                             Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+            var key = Encoding.ASCII.GetBytes(Settings.Secret);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+            services.AddAuthorization(
+                o => o.AddPolicy("apiPolicy", 
+                b => b.RequireAuthenticatedUser()
+                .RequireClaim(ClaimTypes.Role, "User", "Staff")
+                )
+            );
             services.AddScoped<IRepository, DatabaseRepository>();
         }
 
@@ -40,13 +69,17 @@ namespace JobTo.API
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+                app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
             }
-            
+
             //app.UseHttpsRedirection();
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
