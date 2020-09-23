@@ -5,18 +5,21 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace JobTo.API.Controllers
 {
+    
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
         private readonly JobToContext _context;
-
-        public AuthController(JobToContext context)
+        private readonly ILogger _logger;
+        public AuthController(JobToContext context, ILogger<AuthController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -25,6 +28,7 @@ namespace JobTo.API.Controllers
             [FromBody]User model)
         {
             var password = Crypt.Encrypt(model.Password);
+            
             var user = await _context.Users.Where(
                 x => x.Username == model.Username && x.Password == password)
                 .FirstOrDefaultAsync();

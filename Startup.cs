@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 
 namespace JobTo.API
 {
@@ -26,10 +27,17 @@ namespace JobTo.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging(config =>
+        {
+            config.AddDebug();
+            config.AddConsole();
+        });
             services.AddDbContext<JobToContext>(
-                context => context.UseNpgsql(
+                context => context
+                .UseNpgsql(
                     Configuration.GetConnectionString("Default"),
                     options => options.SetPostgresVersion(new Version(9, 6)))
+                .UseSnakeCaseNamingConvention()
             );
             services.AddCors();
             services.AddControllers()
